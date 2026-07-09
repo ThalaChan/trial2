@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UTM Research Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=JetBrains+Mono:wght@300;400;500&family=Teko:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/main.css?v=1780038865">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.1/plotly.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<section id="hero">
+  <!-- Radar elements -->
+  <div class="radar-sweep"></div>
+  <div class="radar-rings">
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+  </div>
+
+  <!-- Drone blips on radar -->
+  <div class="blip" style="top:38%;left:54%"></div>
+  <div class="blip" style="top:45%;left:44%"></div>
+  <div class="blip danger" style="top:52%;left:58%"></div>
+  <div class="blip" style="top:35%;left:60%" ></div>
+  <div class="blip" style="top:60%;left:48%"></div>
+  <div class="blip danger" style="top:42%;left:40%"></div>
+  <div class="blip" style="top:55%;left:62%"></div>
+
+  <!-- Hero content -->
+  <div class="hero-content">
+    <div class="hero-system-id">UTM-ANALYTICS-v2.0</div>
+    <div class="hero-callsign" data-text="DRONEVIEW">DRONE<span>VIEW</span></div>
+    <div class="hero-mission-line">Unmanned Traffic Management · Intelligence Platform</div>
+    <div class="hero-divider">
+      <div class="hero-divider-line"></div>
+      <div class="hero-divider-icon">◈ INDIA'S FIRST UTM SIMULATION ANALYTICS ◈</div>
+      <div class="hero-divider-line"></div>
+    </div>
+    <div class="hero-org">
+      <strong>IIT BOMBAY</strong> · Urban Air Mobility Research · Multi-Agent Drone Simulation
+    </div>
+    <button class="hero-launch" id="hero-connect-btn">
+      INITIALISE MISSION BRIEFING
+    </button>
+  </div>
+
+  <!-- Telemetry strip -->
+  <div class="hero-telemetry">
+    <div class="telem-item">
+      <span class="telem-label">SYS</span>
+      <span class="telem-value live">ONLINE</span>
+    </div>
+    <div class="telem-item">
+      <span class="telem-label">AIRSPACE</span>
+      <span class="telem-value">50×50 GRID</span>
+    </div>
+    <div class="telem-item">
+      <span class="telem-label">PROTOCOL</span>
+      <span class="telem-value">UTM·v2·ACTIVE</span>
+    </div>
+    <div class="telem-item">
+      <span class="telem-label">VEHICLES</span>
+      <span class="telem-value">QUAD·HEXA·OCTA·VTOL·FW</span>
+    </div>
+    <div class="telem-item">
+      <span class="telem-label">PLATFORM</span>
+      <span class="telem-value">RESEARCH·ANALYTICS</span>
+    </div>
+  </div>
+</section>
+
+<!-- CONNECT MODAL -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Connect Data Source</span>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="postgres">PostgreSQL</button>
+      <button class="modal-tab" data-tab="excel">Excel Upload</button>
+    </div>
+    <div class="modal-body" id="tab-postgres">
+      <div class="form-grid">
+        <div class="form-group"><label>Host</label><input id="db-host" value="localhost"></div>
+        <div class="form-group"><label>Port</label><input id="db-port" value="5432" type="number"></div>
+        <div class="form-group"><label>Database</label><input id="db-name" value="simulation_db"></div>
+        <div class="form-group"><label>User</label><input id="db-user" value="postgres"></div>
+        <div class="form-group span-2"><label>Password</label><input id="db-pass" type="password" value="omkar7781"></div>
+      </div>
+      <button class="btn-primary" id="btn-connect-pg">Connect to PostgreSQL</button>
+    </div>
+    <div class="modal-body hidden" id="tab-excel">
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">⬆</div>
+        <div class="upload-text">Drop Excel file here or click to browse</div>
+        <div class="upload-sub">.xlsx export from utm3d simulation</div>
+        <input type="file" id="file-input" accept=".xlsx" style="display:none">
+      </div>
+      <div id="upload-filename" class="upload-filename"></div>
+      <button class="btn-primary" id="btn-upload-excel" disabled>Upload &amp; Connect</button>
+    </div>
+    <div id="modal-status" class="modal-status hidden"></div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<main id="dashboard" class="hidden">
+  <nav class="topnav">
+    <div class="topnav-brand">DRONE<span>VIEW</span></div><div class="topnav-sep"></div>
+    <div class="topnav-controls">
+      <select id="trial-select" class="ctrl-select" style="background:#061828;color:#00b4dc;border:1px solid #006688;padding:4px 8px;font-family:monospace;font-size:12px;cursor:pointer;outline:none;min-width:150px;"><option value="">Select trial…</option></select>
+      <select id="pathrun-select" class="ctrl-select" style="background:#061828;color:#00b4dc;border:1px solid #006688;font-family:monospace;font-size:11px;cursor:pointer;outline:none;" multiple title="Hold Ctrl to select multiple path runs"></select>
+    </div>
+    <div class="topnav-pages">
+      <button class="nav-btn active" data-page="overview">Overview</button>
+      <button class="nav-btn" data-page="spatial">Airspace</button>
+      <button class="nav-btn" data-page="safety">Safety</button>
+      <button class="nav-btn" data-page="fleet">Fleet</button>
+      <button class="nav-btn" data-page="temporal">Temporal</button>
+      <button class="nav-btn" data-page="ml_risk">Predictive Risk</button>
+      <button class="nav-btn" data-page="trial_intel">Trial Intelligence</button>
+    </div>
+    <button class="btn-reconnect" id="btn-reconnect">⟳ Source</button>
+  </nav>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip">
+    <div class="kpi-card" id="kpi-fleet"><div class="kpi-label">Fleet Size</div><div class="kpi-val" id="kv-fleet">—</div><div class="kpi-sub" id="ks-fleet">drones</div></div>
+    <div class="kpi-card" id="kpi-complete"><div class="kpi-label">Mission Complete</div><div class="kpi-val" id="kv-complete">—</div><div class="kpi-sub" id="ks-complete">success rate</div></div>
+    <div class="kpi-card" id="kpi-coll"><div class="kpi-label">Collision Events</div><div class="kpi-val" id="kv-coll">—</div><div class="kpi-sub" id="ks-coll">direct · prox · near-miss</div></div>
+    <div class="kpi-card" id="kpi-battery"><div class="kpi-label">Avg Battery Used</div><div class="kpi-val" id="kv-battery">—</div><div class="kpi-sub">mean across fleet</div></div>
+    <div class="kpi-card" id="kpi-eff"><div class="kpi-label">Route Efficiency</div><div class="kpi-val" id="kv-eff">—</div><div class="kpi-sub">planned / actual</div></div>
+    <div class="kpi-card" id="kpi-crash"><div class="kpi-label">Crash Rate</div><div class="kpi-val" id="kv-crash">—</div><div class="kpi-sub" id="ks-crash">collisions / flights</div></div>
+  </div>
+
+  <!-- Pages -->
+  <div id="pages">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="page-header"><div class="page-title">Overview</div><div class="page-sub">What happened in this trial?</div></div>
+      <div class="layout-2-1">
+        <div class="card reveal"><div class="card-label">Flight Outcome Distribution</div><div id="chart-outcomes" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Vehicle Mix</div><div id="chart-vehicles" class="ch"></div></div>
+      </div>
+      <div class="layout-1-2">
+        <div class="card reveal"><div class="card-label">Layer Utilization</div><div id="layer-bars"></div></div>
+        <div class="card reveal"><div class="card-label">Collision Event Log</div><div id="coll-log-table" class="tbl-wrap"></div></div>
+      </div>
+    </div>
+
+    <!-- AIRSPACE -->
+    <div class="page hidden" id="page-spatial">
+      <div class="page-header"><div class="page-title">Airspace & Spatial</div><div class="page-sub">Where did things happen?</div></div>
+      <div id="spatial-controls" style="display:flex !important;visibility:visible !important;align-items:center;gap:12px;margin-bottom:12px;margin-top:8px;padding:10px 16px;background-color:#061221;border:1px solid #00b4dc;border-left:3px solid #00b4dc;z-index:50;position:relative;opacity:1 !important;">
+  <span style="display:inline;font-family:monospace;font-size:11px;color:#00b4dc;letter-spacing:2px;text-transform:uppercase;font-weight:bold;">LAYER</span>
+  <select id="layer-filter" style="display:inline-block;appearance:auto;-webkit-appearance:auto;background-color:#00b4dc;color:#000000;border:2px solid #ffffff;padding:6px 10px;font-family:monospace;font-size:12px;font-weight:bold;cursor:pointer;min-width:130px;height:32px;">
+    <option value="all">ALL LAYERS</option>
+    <option value="1">L1 · 0m</option>
+    <option value="2">L2 · 50m</option>
+    <option value="3">L3 · 100m</option>
+    <option value="4">L4 · 150m</option>
+  </select>
+  <span style="display:inline;width:1px;height:24px;background:#00b4dc;margin:0 4px;"></span>
+  <span style="display:inline;font-family:monospace;font-size:11px;color:#00b4dc;letter-spacing:2px;text-transform:uppercase;font-weight:bold;">VIEW</span>
+  <select id="spatial-view" style="display:inline-block;appearance:auto;-webkit-appearance:auto;background-color:#00b4dc;color:#000000;border:2px solid #ffffff;padding:6px 10px;font-family:monospace;font-size:12px;font-weight:bold;cursor:pointer;min-width:180px;height:32px;">
+    <option value="positions">DRONE POSITIONS</option>
+    <option value="density">CONFLICT DENSITY</option>
+    <option value="vectors">COLLISION ENCOUNTERS</option>
+  </select>
+</div>
+<div class="layout-3-1">
+        <div class="card reveal"><div class="card-label">Airspace Map</div><div id="chart-spatial" class="ch tall"></div></div>
+        <div class="side-stack">
+          <div class="card reveal"><div class="card-label">Layer Occupancy</div><div id="spatial-layer-bars"></div></div>
+          <div class="card reveal"><div class="card-label">Conflict Nodes</div><div id="conflict-nodes-table" class="tbl-wrap small"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAFETY -->
+    <div class="page hidden" id="page-safety">
+      <div class="page-header"><div class="page-title">Safety Analysis</div><div class="page-sub">How safe is the system?</div></div>
+      <div class="safety-kpis" id="safety-kpis"></div>
+      <div class="layout-2-2">
+        <div class="card reveal"><div class="card-label">Severity Breakdown</div><div id="chart-severity" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Vehicle Involvement & Collision Rate</div><div id="chart-veh-hits" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Battery State at Collision (KDE)</div><div id="chart-bat-crash" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Layer × Vehicle Collision Heatmap</div><div id="chart-layer-veh-heatmap" class="ch"></div></div>
+      </div>
+      <div class="layout-1-1">
+        <div class="card reveal"><div class="card-label">Route Length Assignment by Vehicle Type</div><div id="chart-route-by-vehicle" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Layer Safety Profile — Completion vs Crash Rate per Altitude</div><div id="chart-layer-safety" class="ch"></div></div>
+      </div>
+    </div>
+
+    <!-- FLEET -->
+    <div class="page hidden" id="page-fleet">
+      <div class="page-header"><div class="page-title">Fleet & Efficiency</div><div class="page-sub">How well did the fleet perform?</div></div>
+      <div class="layout-2-2">
+        <div class="card reveal"><div class="card-label">Battery Consumption — by Outcome (KDE)</div><div id="chart-bat-kde" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Fleet Outcome Funnel — From Launch to Terminal State</div><div id="chart-fleet-funnel" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Battery Drain vs Distance — by Vehicle</div><div id="chart-bat-drain" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Mission Success Rate by Launch Zone — Crash Rate Heatmap</div><div id="chart-zone-crash" class="ch"></div></div>
+      </div>
+      <div class="layout-1-1">
+        <div class="card reveal"><div class="card-label">Battery Reserve at Mission End — by Layer</div><div id="chart-bat-reserve-layer" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Per-Vehicle Performance Summary</div><div id="veh-summary-table" class="tbl-wrap" style="height:280px"></div></div>
+      </div>
+    </div>
+
+    <!-- TEMPORAL -->
+    <div class="page hidden" id="page-temporal">
+      <div class="page-header"><div class="page-title">Temporal Dynamics</div><div class="page-sub">When did things happen?</div></div>
+      <div class="card reveal"><div class="card-label">Full Event Timeline — All Drone States, All Severity Levels, All Cancellations</div><div id="chart-full-timeline" class="ch tall"></div></div>
+      <div class="layout-1-1">
+        <div class="card reveal"><div class="card-label">Fleet Density vs Collision Rate</div><div id="chart-fleet-density" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Flight Duration by Outcome</div><div id="chart-dur-box" class="ch"></div></div>
+      </div>
+    </div>
+
+    <!-- PREDICTIVE RISK -->
+    <div class="page hidden" id="page-ml_risk">
+      <div class="page-header"><div class="page-title">Predictive Risk Analysis</div><div class="page-sub">Machine learning risk scoring — which drones were most likely to crash and why?</div></div>
+      <div class="ml-kpis" id="ml-kpis"></div>
+      <div class="layout-3-1">
+        <div class="card reveal"><div class="card-label">Risk Score Map — Drone Positions Colored by Crash Probability</div><div id="chart-risk-map" class="ch tall"></div></div>
+        <div class="side-stack">
+          <div class="card reveal"><div class="card-label">Feature Importance — What Drives Crash Risk?</div><div id="chart-feature-importance" class="ch" style="height:240px"></div></div>
+          <div class="card reveal"><div class="card-label">Risk Tier by Outcome</div><div id="chart-risk-by-vehicle" class="ch" style="height:240px"></div></div>
+        </div>
+      </div>
+      <div class="layout-1-1">
+        <div class="card reveal"><div class="card-label">Risk Score Distribution — Crashed vs Survived</div><div id="chart-risk-dist" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Anomaly Detection Map</div><div id="chart-anomaly-map" class="ch"></div></div>
+      </div>
+      <div class="layout-1-1">
+        <div class="card reveal"><div class="card-label">Model Accuracy — Confusion Matrix</div><div id="chart-confusion" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Vehicle Performance Radar — 5-Axis Comparison</div><div id="chart-vehicle-radar" class="ch"></div></div>
+      </div>
+    </div>
+
+    <!-- TRIAL INTELLIGENCE -->
+    <div class="page hidden" id="page-trial_intel">
+      <div class="page-header"><div class="page-title">Trial Intelligence</div><div class="page-sub">Deep analysis of this trial — event intensity, severity progression, outcome funnel</div></div>
+      <div class="layout-1-1">
+        <div class="card reveal"><div class="card-label">Fleet Outcome Funnel — From Launch to Terminal State</div><div id="chart-outcome-funnel" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Conflict Escalation — Which Drone Pairs Escalated from Near Miss to Crash</div><div id="chart-conflict-escalation" class="ch"></div></div>
+      </div>
+      <div class="card reveal"><div class="card-label">Event Intensity Heatmap — Tick × Severity Count Grid</div><div id="chart-event-heatmap" class="ch"></div></div>
+      <div class="layout-1-1">
+        <div class="card reveal"><div class="card-label">Battery Reserve at Mission End — by Layer</div><div id="chart-bat-reserve-intel" class="ch"></div></div>
+        <div class="card reveal"><div class="card-label">Flight Duration by Outcome</div><div id="chart-dur-box-intel" class="ch"></div></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- LOADING -->
+<div id="loading-overlay" class="loading-overlay hidden">
+  <div class="loading-ring"></div>
+  <div class="loading-text" id="loading-text">Loading…</div>
+</div>
+
+<script src="/static/js/api.js?v=1780038865"></script>
+<script src="/static/js/charts.js?v=1780038865"></script>
+<script src="/static/js/animations.js?v=1780038865"></script>
+<script src="/static/js/app.js?v=1780038865"></script>
+</body>
+</html>

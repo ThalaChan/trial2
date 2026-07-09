@@ -1,0 +1,32 @@
+# Virtual environments — never commit these
+.venv/
+venv/
+env/
+myenv/
+Lib/
+Scripts/
+Include/
+pyvenv.cfg
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Simulation data files — share these separately, not via GitHub
+*.xlsx
+*.xls
+*.csv
+*.db
+*.sqlite
+*.parquet
+
+# Secrets
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
+*.log
